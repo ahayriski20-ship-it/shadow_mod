@@ -1,0 +1,30 @@
+name: Build Shadow Mod
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+          add-to-path: true
+
+      - name: Build NDK
+        run: |
+          $ANDROID_NDK_ROOT/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./jni/Android.mk NDK_APPLICATION_MK=./jni/Application.mk
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libshadow.so
+          path: libs/armeabi-v7a/libshadow.so
+          retention-days: 7
