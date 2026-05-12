@@ -1,6 +1,13 @@
 name: Build PC Shadows
 
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Memberikan izin nulis/push ke bot GitHub Actions
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -12,10 +19,23 @@ jobs:
         id: ndk
         with:
           ndk-version: r25c
+      
       - name: Build
         run: |
           ${{ steps.ndk.outputs.ndk-path }}/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./jni/Android.mk NDK_APPLICATION_MK=./jni/Application.mk -j$(nproc)
-      - name: Upload
+      
+      - name: Simpan .so ke dalam folder repo (Auto-Commit)
+        run: |
+          mkdir -p release
+          cp libs/armeabi-v7a/libshadowpc.so release/
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add release/libshadowpc.so
+          # Pakai [skip ci] biar gak terjadi infinite loop build
+          git commit -m "Auto-build: update libshadowpc.so [skip ci]" || echo "Tidak ada perubahan, skip commit"
+          git push
+          
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: libshadowpc-arm32
