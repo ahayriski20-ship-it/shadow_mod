@@ -1,9 +1,6 @@
 name: Build PC Shadows
 
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
@@ -17,11 +14,7 @@ jobs:
           ndk-version: r25c
       - name: Build
         run: |
-          ${{ steps.ndk.outputs.ndk-path }}/ndk-build \
-            NDK_PROJECT_PATH=. \
-            APP_BUILD_SCRIPT=./jni/Android.mk \
-            NDK_APPLICATION_MK=./jni/Application.mk \
-            -j$(nproc)
+          ${{ steps.ndk.outputs.ndk-path }}/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./jni/Android.mk NDK_APPLICATION_MK=./jni/Application.mk -j$(nproc)
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
