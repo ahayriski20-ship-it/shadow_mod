@@ -8,8 +8,6 @@
 
 #define LOGFILE "/storage/emulated/0/samp/shadow_log.txt"
 #define EXPORT __attribute__((visibility("default")))
-
-// Wajib untuk instruksi ARM32 Thumb di GTA SA
 #define THUMB(a) ((void*)((uintptr_t)(a) | 1u))
 
 static void logf(const char* fmt, ...) {
@@ -21,13 +19,12 @@ static void logf(const char* fmt, ...) {
 
 static int (*orig_UseAdvancedShadows)(int) = nullptr;
 static int hook_UseAdvancedShadows(int arg) {
-    return orig_UseAdvancedShadows(1); // Paksa return 1 (Advanced Shadows ON)
+    return orig_UseAdvancedShadows(1); // Paksa Shadows PC Aktif
 }
 
 static void* init_thread(void*) {
-    // Delay 5 detik biar memori Alyn SAMP selesai unpacking (Anti SIGBUS/Crash)
-    sleep(5);
-    logf("[Shadow] Memulai thread. Mencari simbol dengan dlsym...");
+    sleep(6); // Tunggu proses unpacking launcher selesai (Anti-Crash)
+    logf("[Shadow] Thread jalan. Melakukan Auto-Find offset...");
 
     void* hGTASA = dlopen("libGTASA.so", RTLD_NOW | RTLD_NOLOAD);
     if (!hGTASA) { logf("[Shadow] FATAL: libGTASA.so belum siap"); return nullptr; }
@@ -38,39 +35,29 @@ static void* init_thread(void*) {
     auto dobbyHook = (int(*)(void*,void*,void**))dlsym(hDobby, "DobbyHook");
     if (!dobbyHook) { logf("[Shadow] FATAL: DobbyHook gagal diload"); return nullptr; }
 
-    // Pakai dlsym bawaan Android, JANGAN pakai DobbySymbolResolver!
+    // Auto-Find _Z18UseAdvancedShadowsi langsung di memori pakai dlsym bawaan C
     void* target_addr = dlsym(hGTASA, "_Z18UseAdvancedShadowsi");
 
     if (target_addr) {
         void* final_target = THUMB(target_addr);
-        logf("[Shadow] Ditemukan simbol di %p, memasang hook...", final_target);
-        
+        logf("[Shadow] Offset Ketemu di %p! Mengeksekusi Hook...", final_target);
+
         int rc = dobbyHook(final_target, (void*)hook_UseAdvancedShadows, (void**)&orig_UseAdvancedShadows);
         if (rc == 0) {
-            logf("[Shadow] ✅ SUKSES: PC Shadows (Advanced Shadows) Terpasang & Aktif!");
+            logf("[Shadow] ✅ SUKSES: PC Shadows untuk Karakter Aktif!");
         } else {
-            logf("[Shadow] ❌ GAGAL: DobbyHook error code %d", rc);
+            logf("[Shadow] ❌ GAGAL: DobbyHook error %d", rc);
         }
     } else {
-        logf("[Shadow] ❌ GAGAL: dlsym tidak menemukan simbol _Z18UseAdvancedShadowsi");
+        logf("[Shadow] ❌ GAGAL: Simbol tidak ketemu via dlsym.");
     }
     return nullptr;
 }
 
 extern "C" {
-    EXPORT void* __GetModInfo() {
-        return (void*)"PCShadows|4.0|Threaded dlsym Hook|Riski Boren";
-    }
-
-    EXPORT void OnModPreLoad() {
-        remove(LOGFILE);
-        logf("[Shadow] OnModPreLoad...");
-    }
-
+    EXPORT void* __GetModInfo() { return (void*)"PCShadows|6.0|Full Github Build|Riski Boren"; }
+    EXPORT void OnModPreLoad() { remove(LOGFILE); }
     EXPORT void OnModLoad() {
-        logf("[Shadow] OnModLoad - Memulai thread...");
-        pthread_t t;
-        pthread_create(&t, nullptr, init_thread, nullptr);
-        pthread_detach(t);
+        pthread_t t; pthread_create(&t, nullptr, init_thread, nullptr); pthread_detach(t);
     }
 }
