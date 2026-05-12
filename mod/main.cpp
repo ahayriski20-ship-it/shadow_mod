@@ -11,10 +11,8 @@ static void logf(const char* msg) {
     if (f) { fprintf(f, "%s\n", msg); fclose(f); }
 }
 
-// Pointer asli dan fungsi hook
 static int (*orig_UseAdvancedShadows)(int) = nullptr;
 static int hook_UseAdvancedShadows(int arg) {
-    // Selalu bypass argumen dan paksa bernilai 1 (True)
     return orig_UseAdvancedShadows(1);
 }
 
@@ -39,12 +37,10 @@ extern "C" {
 
         if (!resolver || !dobbyHook) { logf("[Shadow] GAGAL: API Dobby tidak ditemukan"); return; }
 
-        // Resolve mangled symbol yang kamu temukan sebelumnya
         void* target = resolver("libGTASA.so", "_Z18UseAdvancedShadowsi");
         if (target) {
-            // Pasang hook dan periksa statusnya
             if (dobbyHook(target, (void*)hook_UseAdvancedShadows, (void**)&orig_UseAdvancedShadows) == 0) {
-                logf("[Shadow] SUKSES: Hook _Z18UseAdvancedShadowsi terpasang");
+                logf("[Shadow] SUKSES: Hook PC Shadows terpasang di _Z18UseAdvancedShadowsi");
             } else {
                 logf("[Shadow] GAGAL: DobbyHook return error");
             }

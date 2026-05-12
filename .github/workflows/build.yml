@@ -1,30 +1,29 @@
-name: Build Shadow Mod
+name: Build PC Shadows
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Setup NDK
         uses: nttld/setup-ndk@v1
+        id: ndk
         with:
           ndk-version: r25c
-          add-to-path: true
-
-      - name: Build NDK
+      - name: Build
         run: |
-          $ANDROID_NDK_ROOT/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./jni/Android.mk NDK_APPLICATION_MK=./jni/Application.mk
-
-      - name: Upload Artifact
+          ${{ steps.ndk.outputs.ndk-path }}/ndk-build \
+            NDK_PROJECT_PATH=. \
+            APP_BUILD_SCRIPT=./jni/Android.mk \
+            NDK_APPLICATION_MK=./jni/Application.mk \
+            -j$(nproc)
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: libshadow.so
-          path: libs/armeabi-v7a/libshadow.so
-          retention-days: 7
+          name: libshadowpc-arm32
+          path: libs/armeabi-v7a/libshadowpc.so
